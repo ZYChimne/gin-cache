@@ -18,7 +18,6 @@ func NewMemoryStore(defaultExpiration time.Duration) *MemoryStore {
 		ttlcache.WithTTL[string, interface{}](defaultExpiration),
 		ttlcache.WithDisableTouchOnHit[string, interface{}](),
 	)
-	go cacheStore.Start()
 	return &MemoryStore{
 		Cache: cacheStore,
 	}
@@ -26,6 +25,7 @@ func NewMemoryStore(defaultExpiration time.Duration) *MemoryStore {
 
 // Set put key value pair to memory store, and expire after expireDuration
 func (c *MemoryStore) Set(key string, value interface{}, expireDuration time.Duration) error {
+	c.Cache.DeleteExpired()
 	c.Cache.Set(key, value, expireDuration)
 	return nil
 }
@@ -41,11 +41,12 @@ func (c *MemoryStore) Delete(key string) error {
 
 // Get get key in memory store, if key doesn't exist, return ErrCacheMiss
 func (c *MemoryStore) Get(key string, value interface{}) error {
+	c.Cache.DeleteExpired()
 	if !c.Cache.Has(key) {
 		return ErrCacheMiss
 	}
 	val := c.Cache.Get(key)
 	v := reflect.ValueOf(value)
-	v.Elem().Set(reflect.ValueOf(val))
+	v.Elem().Set(reflect.ValueOf(val.Value()))
 	return nil
 }
