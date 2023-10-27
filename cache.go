@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zychimne/gin-cache/persist"
 	"github.com/gin-gonic/gin"
+	"github.com/zychimne/gin-cache/persist"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -139,12 +139,14 @@ func CacheByRequestURI(defaultCacheStore persist.CacheStore, defaultExpire time.
 	var cacheStrategy GetCacheStrategyByRequest
 	if cfg.ignoreQueryOrder {
 		cacheStrategy = func(c *gin.Context) (bool, Strategy) {
+			if len(c.Request.RequestURI) == 0 {
+				return false, Strategy{}
+			}
 			newUri, err := getRequestUriIgnoreQueryOrder(c.Request.RequestURI)
 			if err != nil {
 				cfg.logger.Errorf("getRequestUriIgnoreQueryOrder error: %s", err)
 				newUri = c.Request.RequestURI
 			}
-
 			return true, Strategy{
 				CacheKey: newUri,
 			}
@@ -152,6 +154,9 @@ func CacheByRequestURI(defaultCacheStore persist.CacheStore, defaultExpire time.
 
 	} else {
 		cacheStrategy = func(c *gin.Context) (bool, Strategy) {
+			if len(c.Request.RequestURI) == 0 {
+				return false, Strategy{}
+			}
 			return true, Strategy{
 				CacheKey: c.Request.RequestURI,
 			}
